@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .create-user {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .logout-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px;
+            float: right;
+            margin-bottom: 20px;
+        }
+        .activate {
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+        .deactivate {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none; 
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 30%;
+            text-align: center;
+        }
+        .modal input, .modal select {
+            width: 90%;
+            padding: 8px;
+            margin: 8px 0;
+        }
+        .modal button {
+            padding: 8px 12px;
+            margin-top: 10px;
+        }
+        .close {
+            float: right;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>Welcome <%= users[0].name %></h2>
+    <!-- <button class="create-user" onclick="openModal()">Create User</button> -->
+    <button class="logout-button" onclick="logout()">Logout</button>
+
+    <table>
+        <tr>
+            <!-- <th>ID</th> -->
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        <% users.forEach(user => { %>
+        <tr>
+            <!-- <td><%= user.id %></td> -->
+            <td><%= user.name %></td>
+            <td><%= user.email %></td>
+            <td><%= user.role %></td>
+            <td>
+                <% if (user.isVerified) { %>
+                    <span style="color: green;">Verified</span>
+                <% } else { %>
+                    <span style="color: red;">Not Verified</span>
+                <% } %>
+            </td>
+            <td>
+                <button onclick="updateUser('<%= user.id %>', 'name')">Update Name</button>
+                <button onclick="updateUser('<%= user.id %>', 'email')">Update Email</button>
+                <!-- <button onclick="openRoleModal('<%= user.id %>', '<%= user.role %>')">Update Role</button> -->
+                <!-- <% if (user.isVerified) { %>
+                    <button class="deactivate" onclick="toggleUserStatus('<%= user.id %>', false)">Deactivate</button>
+                <% } else { %>
+                    <button class="activate" onclick="toggleUserStatus('<%= user.id %>', true)">Activate</button>
+                <% } %> -->
+            </td>
+        </tr>
+        <% }); %>
+    </table>
+
+    <!-- User Creation Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>Create New User</h3>
+            <input type="text" id="newUserName" placeholder="Enter Name" required>
+            <input type="email" id="newUserEmail" placeholder="Enter Email" required>
+            <label><b>Role</b></label>
+            <select id="newUserRole">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+                <option value="Moderator">Moderator</option>
+            </select>
+            <br />
+            <button onclick="submitUser()">Submit</button>
+        </div>
+    </div>
+
+    <!-- Role Update Modal -->
+    <div id="roleModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRoleModal()">&times;</span>
+            <h3>Update User Role</h3>
+            <select id="roleSelect"></select>
+            <br />
+            <button onclick="submitRoleUpdate()">Update</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedUserId = null;
+
+        function openModal() {
+            document.getElementById("userModal").style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById("userModal").style.display = "none";
+        }
+
+        function openRoleModal(userId, currentRole) {
+            selectedUserId = userId;
+            const roleSelect = document.getElementById("roleSelect");
+            roleSelect.innerHTML = "";
+
+            const roles = ["user", "admin", "Moderator"];
+            roles.forEach(role => {
+                if (role !== currentRole) {
+                    const option = document.createElement("option");
+                    option.value = role;
+                    option.textContent = role;
+                    roleSelect.appendChild(option);
+                }
+            });
+
+            document.getElementById("roleModal").style.display = "block";
+        }
+
+        function closeRoleModal() {
+            document.getElementById("roleModal").style.display = "none";
+        }
+
+        function submitRoleUpdate() {
+            const newRole = document.getElementById("roleSelect").value;
+            fetch(`/admin/updateuser`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: newRole, id: selectedUserId })
+            })
+            .then(response => response.json())
+            .then(() => {
+                closeRoleModal();
+                location.reload();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function logout() {
+            fetch('/auth/logout', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'  // Ensure cookies are sent
+            })
+            .then((res) => {
+                // console.log("hiiiiiiiiiiiii",res)
+                window.location.href = '/login';
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function submitUser() {
+            const name = document.getElementById("newUserName").value;
+            const email = document.getElementById("newUserEmail").value;
+            const role = document.getElementById("newUserRole").value;
+
+            if (!name || !email || !role) return alert("All fields are required!");
+
+            fetch('/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, role, isActive: true })
+            })
+            .then(response => response.json())
+            .then(() => {
+                closeModal();
+                location.reload();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function updateUser(userId, field) {
+            const newValue = prompt(`Enter new ${field}:`);
+            if (!newValue) return;
+
+            fetch(`/admin/updateuser`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: newValue, id: userId })
+            })
+            .then(response => response.json())
+            .then(() => location.reload())
+            .catch(error => console.error('Error:', error));
+        }
+
+        function toggleUserStatus(userId, isVerified) {
+            fetch(`/admin/updateuser`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isVerified,id: userId})
+            })
+            .then(response => response.json())
+            .then(() => location.reload())
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
